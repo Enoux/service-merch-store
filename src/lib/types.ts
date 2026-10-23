@@ -9,6 +9,13 @@ export type Product = {
 }
 
 export type Category = {
-    id: number
-    category: string
+    id: number;
+    category: string;
+}
+
+export type CartItem = {
+    count: number;
+    name: string;
+    price: number;
+    image: string | null;
 }
