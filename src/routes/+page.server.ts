@@ -11,10 +11,7 @@ function getUrl(path:string|null) {
 	return data.publicUrl
 }
 
-export const load: PageLoad = async ({ setHeaders }) => {
-	setHeaders({
-		'cache-control': 'public, max-age=300, stale-while-revalidate=600'
-	});
+export const load: PageLoad = async () => {
 
 	const [variantResult, categoryResult] = await Promise.all([
 		supabase
