@@ -4,9 +4,8 @@
     import LeftArrow from '$lib/assets/left-arrow.svg';
     import RightArrow from '$lib/assets/right-arrow.svg';
 
-    let { products }: { products: Product[] } = $props();
+    let { products, pageNum = $bindable() }: { products: Product[], pageNum: number } = $props();
 
-	let pageNum = $state(0);
     let cardsPerPage = 5;
 	let maxPages = $derived(Math.max(0, products.length - cardsPerPage));
 
@@ -37,7 +36,7 @@
 				class="flex transition-transform duration-300 ease-out -mx-2"
 				style="transform: translateX(-{(pageNum * 100) / cardsPerPage}%);"
 			>
-				{#each products as product}
+				{#each products as product (product.id)}
                 <div class="w-1/5 shrink-0 px-2">
                     <Card id={product.id} image={product.image} price={product.price} name={product.name} />
                 </div>
