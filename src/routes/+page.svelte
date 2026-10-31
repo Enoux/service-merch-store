@@ -3,6 +3,7 @@
 	import HomepageBg from '$lib/assets/homepage-bg.png';
 	import Carousel from '$lib/components/Carousel/Carousel.svelte';
 	import RightArrow from '$lib/assets/right-arrow-thin.svg';
+	import { resolve } from '$app/paths';
 
 	let { data }: { data: PageData } = $props();
 
@@ -12,6 +13,8 @@
 			? data.products
 			: data.products.filter((product) => product.category === selectedCategory.category)
 	);
+
+	let pageNum = $state(0);
 </script>
 
 <div class="relative z-0 h-60 w-full overflow-hidden md:h-80">
@@ -22,7 +25,7 @@
 	<div class="flex items-center justify-between border-b-2 border-gray-300">
 		<nav class="flex space-x-8">
 			<button
-				onclick={() => (selectedCategory = { id: 0, category: 'All' })}
+				onclick={() => {selectedCategory = { id: 0, category: 'All' }; pageNum = 0}}
 				class="relative px-2 pb-3 text-sm font-medium whitespace-nowrap transition-colors
                 {selectedCategory.id === 0
 					? 'border-b-3 border-csi-blue font-semibold text-csi-blue'
@@ -32,7 +35,7 @@
 			</button>
 			{#each data.categories as category (category.id)}
 				<button
-					onclick={() => (selectedCategory = category)}
+					onclick={() => {selectedCategory = category; pageNum = 0}}
 					class="relative px-2 pb-3 text-sm font-medium whitespace-nowrap transition-colors
                     {selectedCategory.id === category.id
 						? 'border-b-3 border-csi-blue font-semibold text-csi-blue'
@@ -43,7 +46,7 @@
 			{/each}
 		</nav>
 		<a
-			href="/catalog"
+			href={resolve("/catalog")}
 			class="group inline-flex items-center gap-1.5 pb-3 text-sm font-normal text-gray-500 transition-colors hover:text-gray-700"
 		>
 			<span>Go to All Products</span>
@@ -52,4 +55,4 @@
 	</div>
 </div>
 
-<Carousel products={selectedProducts}></Carousel>
+<Carousel products={selectedProducts} bind:pageNum={pageNum}></Carousel>
