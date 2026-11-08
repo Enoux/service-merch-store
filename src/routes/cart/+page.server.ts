@@ -178,7 +178,13 @@ export const actions:Actions =  {
             return fail(422, {message: "Error Parsing or Evaluating Edit Entries"})
         }
 
-        const {error} = await supabase.from("ShoppingCartItems").update({Count: input.count}).eq("ID",input.id)
+        let error = null
+        if(input.count == 0) {
+            ({error} = await supabase.from("ShoppingCartItems").delete().eq("ID",input.id))
+        } else {
+            ({error} = await supabase.from("ShoppingCartItems").update({Count: input.count}).eq("ID",input.id))
+        
+        }
         if(error) {
             return fail(500, {message:error.message})
 
