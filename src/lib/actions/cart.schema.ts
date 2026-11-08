@@ -33,6 +33,6 @@ export const EditCartEntriesSchema = v.object({
         v.string(),
         v.transform(Number),
         v.integer(),
-        v.minValue(1)
+        v.minValue(0)
     )
 })
