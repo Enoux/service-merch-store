@@ -2,7 +2,7 @@ import { supabase } from '$lib/supabaseClient';
 import type { CartItem } from '$lib/types'
 import { error, fail, json, type Actions } from '@sveltejs/kit';
 import * as v from 'valibot'
-import { CreateCartSchema, DeleteCartEntriesSchema } from '$lib/actions/cart.schema.js';
+import { CreateCartSchema, DeleteCartEntriesSchema, EditCartEntriesSchema } from '$lib/actions/cart.schema.js';
 export async function load({ locals }): Promise<{
     cartItems: CartItem[],
 }> {
@@ -95,7 +95,7 @@ export const actions:Actions =  {
             const [{ID}] = insert_data
            console.log(ID)
             
-            return {success: true}
+            return {success: true, ID}
         }
 
     },
@@ -168,20 +168,17 @@ export const actions:Actions =  {
             return fail(403, {message: "User is not logged in"})
         }
 
-        const data = await request.formData()
-        let id, count
+        const data = Object.fromEntries(await request.formData())
+        
+        let input
+
         try {
-            id = Number(data.get("id")?.toString() ?? '-1')
-            count = Number(data.get("count")?.toString() ?? '-1')
-        } catch(error) {
-            return fail(500, {message: "Parsing Error"})
+            input = v.parse(EditCartEntriesSchema,data)
+        } catch {
+            return fail(422, {message: "Error Parsing or Evaluating Edit Entries"})
         }
 
-        if (count <=0 || id <= 0) {
-            return fail(500, {mesage: "Value Out of Bounds"})
-        }
-
-        const {error} = await supabase.from("ShoppingCartItems").update({Count: count}).eq("ID",id)
+        const {error} = await supabase.from("ShoppingCartItems").update({Count: input.count}).eq("ID",input.id)
         if(error) {
             return fail(500, {message:error.message})
 

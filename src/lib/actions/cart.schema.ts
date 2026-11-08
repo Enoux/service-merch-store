@@ -22,3 +22,17 @@ export const DeleteCartEntriesSchema = v.object({
         v.array(v.pipe(v.string(),v.toNumber(),v.integer()))
     )
 })
+
+export const EditCartEntriesSchema = v.object({
+    id: v.pipe(
+        v.string(),
+        v.transform(Number),
+        v.integer(),
+    ),
+    count: v.pipe(
+        v.string(),
+        v.transform(Number),
+        v.integer(),
+        v.minValue(1)
+    )
+})
