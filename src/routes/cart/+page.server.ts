@@ -1,7 +1,8 @@
 import { supabase } from '$lib/supabaseClient';
 import type { CartItem } from '$lib/types'
 import { error, fail, json, type Actions } from '@sveltejs/kit';
-
+import * as v from 'valibot'
+import { CreateCartSchema, DeleteCartEntriesSchema } from '$lib/actions/cart.schema.js';
 export async function load({ locals }): Promise<{
     cartItems: CartItem[],
 }> {
@@ -66,36 +67,23 @@ export const actions:Actions =  {
         const user = (await supabase.auth.getUser()).data.user
 
         if(!user) {
-            return fail(401, {message: "User is not logged in"})
+            return fail(403, {message: "User is not logged in"})
         }
         
-        const data = await request.formData()
-        let variant_id, count
+        const data = Object.fromEntries(await request.formData())
+        let cart_input
 
-        try{ 
-            ({variant_id,count} = validateAddCart(data))
-        } catch(error) {
-
-            if(error instanceof Error){
-                return fail(500, {message: "Parsing or Out of Bounds Error"})}
-            else {
-                return fail(500, {message: "Unexpected Error"})
-            }
+        try {
+            cart_input = v.parse(CreateCartSchema,data)
         }
-        
-        // try {
-        //     await validateStocks(variant_id,count)
-        // } catch (error) {
-        //     if (error instanceof Error) {
-        //         return fail(500, {message: error.message})
-        //     } else {
-        //         return fail(500, {message: "Unexpected Error"})
-        //     }
-        // }
+        catch {
+            return fail(422, {message: "Error Parsing or Evaluating Variant ID and Count arguments"})
+        }
+
         const {data: insert_data, error:insert_error} = await supabase.from("ShoppingCartItems").insert(
             {
-                VariantID: variant_id,
-                Count: count,
+                VariantID: cart_input.variant_id,
+                Count: cart_input.count,
                 UserID: user.id
             }
         ).select("ID")
@@ -105,9 +93,9 @@ export const actions:Actions =  {
         }
         else {
             const [{ID}] = insert_data
-            console.log(ID)
+           console.log(ID)
             
-            return {success: true, ID}
+            return {success: true}
         }
 
     },
@@ -116,7 +104,7 @@ export const actions:Actions =  {
         const user = (await supabase.auth.getUser()).data.user
 
         if(!user) {
-            return fail(401, {message: "User is not logged in"})
+            return fail(403, {message: "User is not logged in"})
         }
 
         const data = await request.formData()
@@ -141,11 +129,11 @@ export const actions:Actions =  {
         const user = (await supabase.auth.getUser()).data.user
 
         if(!user) {
-            return fail(401, {message: "User is not logged in"})
+            return fail(403, {message: "User is not logged in"})
         }
 
-        const data = await request.formData()
-
+        const data = Object.fromEntries(await request.formData())
+        
         //format of input is a Number array binded to a hidden input 
         //let toggled = $state<Number[]>([]) 
         //<input type="hidden" name="cartIDs" bind:value={toggled}>
@@ -153,11 +141,16 @@ export const actions:Actions =  {
         //{#each data.cartItems as c}
         //<input type="checkbox" value={c.id} bind:group={toggled}>
         //{/each}
-        
-        const cartIDs_string = data.get("cartIDs")?.toString() ?? '[]'
-        const cartIDs = cartIDs_string.split(',')
 
-        const {error:delete_error} = await supabase.from("ShoppingCartItems").delete().in("ID",cartIDs)
+        let input
+        try {
+            input = v.parse(DeleteCartEntriesSchema,data)
+        } catch {
+            return fail(422, {message: "Error Parsing or Evaluating Delete Entries"})
+        }
+        
+        
+        const {error:delete_error} = await supabase.from("ShoppingCartItems").delete().in("ID",input.cartIDs)
 
         //according to Supabase docs, if |cartIDs| > |user's cart entries|, the delete still returns a success
         //i.e. extra IDs are skipped, or ignored.
@@ -172,7 +165,7 @@ export const actions:Actions =  {
         const user = (await supabase.auth.getUser()).data.user
 
         if(!user) {
-            return fail(401, {message: "User is not logged in"})
+            return fail(403, {message: "User is not logged in"})
         }
 
         const data = await request.formData()
@@ -198,25 +191,6 @@ export const actions:Actions =  {
 
 }
 
-function validateAddCart(data: FormData): {
- variant_id: number;
- count: number;
-} {
-    let variant_id = -1
-    let count = -1
-    try {variant_id = Number(data.get("variant_id")?.toString() ?? '-1')
-    count = Number(data.get("count")?.toString() ?? '-1')}
-
-    catch (error) {
-        throw new Error("Parsing Error");
-        
-    }
-
-    if (variant_id <= 0 || count <= 0){
-        throw new Error("Variant ID or count out of bounds")}
-    
-    return {variant_id, count}
-}
 
 async function validateStocks(variant_id: number, count: number) {
     const {data: variant_data, error:query_error} = await supabase.from("Variant")
