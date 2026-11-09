@@ -70,10 +70,6 @@
 
 	<div class="flex w-1/5 flex-col">
 		<span class="flex items-center justify-end text-lg font-medium">Php {total.toFixed(2)}</span>
-		{#if variant != ''}
-			<span class="flex items-center justify-end text-sm font-light"
-				>Php {(price ? price : 0).toFixed(2)}</span
-			>
-		{/if}
+        <span class="flex items-center justify-end text-sm font-light">Php {(price ? price : 0).toFixed(2)}</span>
 	</div>
 </div>
