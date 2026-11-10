@@ -1,7 +1,8 @@
 import { supabase } from '$lib/supabaseClient';
 import type { CartItem } from '$lib/types';
 import { error, fail, json, type Actions } from '@sveltejs/kit';
-
+import * as v from 'valibot'
+import { CreateCartSchema, DeleteCartEntriesSchema, EditCartEntriesSchema } from '$lib/actions/cart.schema.js';
 export async function load({ locals }): Promise<{
 	cartItems: CartItem[];
 }> {
@@ -59,159 +60,138 @@ function getUrl(path: string | null) {
 	return data.publicUrl;
 }
 
-export const actions: Actions = {
-	addCartEntry: async ({ locals: { supabase }, request }) => {
-		const user = (await supabase.auth.getUser()).data.user;
+export const actions:Actions =  {
 
-		if (!user) {
-			return fail(401, { message: 'User is not logged in' });
-		}
+    addCartEntry:  async({locals: {supabase}, request}) => {
+        
+        const user = (await supabase.auth.getUser()).data.user
 
-		const data = await request.formData();
-		let variant_id, count;
+        if(!user) {
+            return fail(403, {message: "User is not logged in"})
+        }
+        
+        const data = Object.fromEntries(await request.formData())
+        let cart_input
 
-		try {
-			({ variant_id, count } = validateAddCart(data));
-		} catch (error) {
-			if (error instanceof Error) {
-				return fail(500, { message: 'Parsing or Out of Bounds Error' });
-			} else {
-				return fail(500, { message: 'Unexpected Error' });
-			}
-		}
+        try {
+            cart_input = v.parse(CreateCartSchema,data)
+        }
+        catch {
+            return fail(422, {message: "Error Parsing or Evaluating Variant ID and Count arguments"})
+        }
 
-		// try {
-		//     await validateStocks(variant_id,count)
-		// } catch (error) {
-		//     if (error instanceof Error) {
-		//         return fail(500, {message: error.message})
-		//     } else {
-		//         return fail(500, {message: "Unexpected Error"})
-		//     }
-		// }
-		const { data: insert_data, error: insert_error } = await supabase
-			.from('ShoppingCartItems')
-			.insert({
-				VariantID: variant_id,
-				Count: count,
-				UserID: user.id
-			})
-			.select('ID');
+        const {data: insert_data, error:insert_error} = await supabase.from("ShoppingCartItems").insert(
+            {
+                VariantID: cart_input.variant_id,
+                Count: cart_input.count,
+                UserID: user.id
+            }
+        ).select("ID")
 
-		if (insert_error) {
-			return fail(501, { message: insert_error.message });
-		} else {
-			const [{ ID }] = insert_data;
-			console.log(ID);
+        if(insert_error) {
+            return fail(501, {message: insert_error.message})
+        }
+        else {
+            const [{ID}] = insert_data
+           console.log(ID)
+            
+            return {success: true, ID}
+        }
 
-			return { success: true, ID };
-		}
-	},
+    },
 
-	deleteCartEntry: async ({ locals: { supabase }, request }) => {
-		const user = (await supabase.auth.getUser()).data.user;
+    deleteCartEntry: async ({locals: {supabase}, request}) => {
+        const user = (await supabase.auth.getUser()).data.user
 
-		if (!user) {
-			return fail(401, { message: 'User is not logged in' });
-		}
+        if(!user) {
+            return fail(403, {message: "User is not logged in"})
+        }
 
-		const data = await request.formData();
-		let id;
-		try {
-			id = Number(data.get('id')?.toString() ?? '-1');
-		} catch (error) {
-			return fail(500, { message: 'Parsing Error' });
-		}
+        const data = await request.formData()
+        let id
+        try {
+            id = Number(data.get("id")?.toString() ?? '-1')
+        } catch(error) {
+            return fail(500, {message: "Parsing Error"})
+        }
 
-		const { error: delete_error } = await supabase.from('ShoppingCartItems').delete().eq('ID', id);
+        const {error: delete_error} =await  supabase.from("ShoppingCartItems").
+        delete().
+        eq('ID',id)
+        
+        if(delete_error) {
+            return fail(500, {message: delete_error.message})
+        }
+        return {success: true}
+    },
+    
+    deleteCartEntries: async({locals: {supabase}, request}) => {
+        const user = (await supabase.auth.getUser()).data.user
 
-		if (delete_error) {
-			return fail(500, { message: delete_error.message });
-		}
-		return { success: true };
-	},
+        if(!user) {
+            return fail(403, {message: "User is not logged in"})
+        }
 
-	deleteCartEntries: async ({ locals: { supabase }, request }) => {
-		const user = (await supabase.auth.getUser()).data.user;
+        const data = Object.fromEntries(await request.formData())
+        
+        //format of input is a Number array binded to a hidden input 
+        //let toggled = $state<Number[]>([]) 
+        //<input type="hidden" name="cartIDs" bind:value={toggled}>
+    
+        //{#each data.cartItems as c}
+        //<input type="checkbox" value={c.id} bind:group={toggled}>
+        //{/each}
 
-		if (!user) {
-			return fail(401, { message: 'User is not logged in' });
-		}
+        let input
+        try {
+            input = v.parse(DeleteCartEntriesSchema,data)
+        } catch {
+            return fail(422, {message: "Error Parsing or Evaluating Delete Entries"})
+        }
+        
+        
+        const {error:delete_error} = await supabase.from("ShoppingCartItems").delete().in("ID",input.cartIDs)
 
-		const data = await request.formData();
+        //according to Supabase docs, if |cartIDs| > |user's cart entries|, the delete still returns a success
+        //i.e. extra IDs are skipped, or ignored.
+        if(delete_error) {
+            return fail(500, {message: delete_error.message})
+        }
+        return {success:true}
 
-		//format of input is a Number array binded to a hidden input
-		//let toggled = $state<Number[]>([])
-		//<input type="hidden" name="cartIDs" bind:value={toggled}>
 
-		//{#each data.cartItems as c}
-		//<input type="checkbox" value={c.id} bind:group={toggled}>
-		//{/each}
+    },
+    editCartEntry: async ({locals: {supabase}, request}) => {
+        const user = (await supabase.auth.getUser()).data.user
 
-		const cartIDs_string = data.get('cartIDs')?.toString() ?? '[]';
-		const cartIDs = cartIDs_string.split(',');
+        if(!user) {
+            return fail(403, {message: "User is not logged in"})
+        }
 
-		const { error: delete_error } = await supabase
-			.from('ShoppingCartItems')
-			.delete()
-			.in('ID', cartIDs);
+        const data = Object.fromEntries(await request.formData())
+        
+        let input
 
-		//according to Supabase docs, if |cartIDs| > |user's cart entries|, the delete still returns a success
-		//i.e. extra IDs are skipped, or ignored.
-		if (delete_error) {
-			return fail(500, { message: delete_error.message });
-		}
-		return { success: true };
-	},
-	editCartEntry: async ({ locals: { supabase }, request }) => {
-		const user = (await supabase.auth.getUser()).data.user;
+        try {
+            input = v.parse(EditCartEntriesSchema,data)
+        } catch {
+            return fail(422, {message: "Error Parsing or Evaluating Edit Entries"})
+        }
 
-		if (!user) {
-			return fail(401, { message: 'User is not logged in' });
-		}
+        let error = null
+        if(input.count == 0) {
+            ({error} = await supabase.from("ShoppingCartItems").delete().eq("ID",input.id))
+        } else {
+            ({error} = await supabase.from("ShoppingCartItems").update({Count: input.count}).eq("ID",input.id))
+        
+        }
+        if(error) {
+            return fail(500, {message:error.message})
 
-		const data = await request.formData();
-		let id, count;
-		try {
-			id = Number(data.get('id')?.toString() ?? '-1');
-			count = Number(data.get('count')?.toString() ?? '-1');
-		} catch (error) {
-			return fail(500, { message: 'Parsing Error' });
-		}
+        }
+        return {success:true}
+    }
 
-		if (count <= 0 || id <= 0) {
-			return fail(500, { mesage: 'Value Out of Bounds' });
-		}
-
-		const { error } = await supabase
-			.from('ShoppingCartItems')
-			.update({ Count: count })
-			.eq('ID', id);
-		if (error) {
-			return fail(500, { message: error.message });
-		}
-		return { success: true };
-	}
-};
-
-function validateAddCart(data: FormData): {
-	variant_id: number;
-	count: number;
-} {
-	let variant_id = -1;
-	let count = -1;
-	try {
-		variant_id = Number(data.get('variant_id')?.toString() ?? '-1');
-		count = Number(data.get('count')?.toString() ?? '-1');
-	} catch (error) {
-		throw new Error('Parsing Error');
-	}
-
-	if (variant_id <= 0 || count <= 0) {
-		throw new Error('Variant ID or count out of bounds');
-	}
-
-	return { variant_id, count };
 }
 
 async function validateStocks(variant_id: number, count: number) {
