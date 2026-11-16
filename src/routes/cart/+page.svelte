@@ -6,7 +6,7 @@
 	const cartItems = $derived(data.cartItems);
 </script>
 
-{#each cartItems as item (item.name)}
+{#each cartItems as item (item.id)}
 	<div>
 		<div class="mx-10">
 			<CartItem
