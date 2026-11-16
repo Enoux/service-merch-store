@@ -1,11 +1,23 @@
 <script lang="ts">
-	let { name, price, quantity, onIncrement, onDecrement } = $props<{
+	import { enhance, applyAction } from '$app/forms';
+
+	let {
+		id,
+		name,
+		price,
+		quantity,
+		stock,
+		onIncrement,
+		onDecrement
+	}: {
+		id: number;
 		name: string;
 		price: number;
 		quantity: number;
+		stock: number;
 		onIncrement: () => void;
 		onDecrement: () => void;
-	}>();
+	} = $props();
 </script>
 
 <aside class="sidebar">
@@ -21,7 +33,22 @@
 		</div>
 	</div>
 
-	<button type="button" class="add-to-cart">Add to cart</button>
+	<form method="POST" action="/cart?/addCartEntry" class="w-full" use:enhance={() => {
+		return async ({ result }) => {
+			await applyAction(result);
+		}
+	}}>
+		<input type="hidden" bind:value={id} name="variant_id" />
+		<input type="hidden" bind:value={quantity} name="count" />
+		<button
+			type="submit"
+			class="w-full mt-8 border-1 border-solid border-slate-700 px-8 py-3 bg-white cursor-pointer text-gray-700 rounded-full"
+			disabled={stock <= 0}
+			onclick={() => console.log('test add to cart')}
+		>
+			Add to cart
+		</button>
+	</form>
 </aside>
 
 <style>
