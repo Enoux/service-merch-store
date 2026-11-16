@@ -53,7 +53,7 @@ export async function load({ params }): Promise<{ product: Product | null }> {
 
     //console.log('RAW FIRST ROW:', JSON.stringify(data?.[0], null, 2));
 
-    const product: Product | null = {
+    const product: Product = {
         id: variantData?.[0]?.id ?? 0,
         image: variantData?.[0]?.ImageLink ?? imageUrl,
         gallery: galleryLinks,
