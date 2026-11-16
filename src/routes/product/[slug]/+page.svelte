@@ -1,17 +1,18 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import placeholder from '$lib/components/Card/placeholder.svg';
+	import AlertModal from '$lib/components/Modal/AlertModal.svelte';
+	import Checkmark from '$lib/assets/checkmark.svg';
+	import Cross from '$lib/assets/cross.svg';
 	import VerticalGallery from '$lib/components/ProductDetail/VerticalGallery.svelte';
 	import MainDisplay from '$lib/components/ProductDetail/MainDisplay.svelte';
 	import ProductSidebar from '$lib/components/ProductDetail/ProductSidebar.svelte';
+	import { page } from '$app/state';
 	import type { Product } from "$lib/types.js";
 
-	let { data } = $props<{ data: { product: Product | null } }>();
-	const images = $derived(data.product.gallery);
-	let selectedImage = $derived(data.product.image);
+	let { data } : { data: { product: Product } } = $props();
+	const { product } = $derived(data);
+	const images = $derived(product.gallery);
+	let selectedImage = $derived(product.image);
 	let quantity = $state(1);
-
-	const product = $derived(data.product);
 
 	function incrementQuantity() {
 		if (quantity < product.stock_amount) {
@@ -22,6 +23,8 @@
 	function decrementQuantity() {
 		quantity = Math.max(1, quantity - 1);
 	}
+
+	let displayAlertModal = $state(true);
 </script>
 
 <div class="product-layout">
@@ -33,13 +36,25 @@
 	/>
 
 	<ProductSidebar
+		id={product.id}
 		name={product.name}
 		price={product.price}
 		{quantity}
+		stock={product.stock_amount}
 		onIncrement={incrementQuantity}
 		onDecrement={decrementQuantity}
+		bind:displayModal={displayAlertModal}
 	/>
 </div>
+{#if displayAlertModal}
+	{#if page.form?.success}
+		<AlertModal message={`${product.name} successfully added to your cart!`} icon={Checkmark}
+					bind:isDisplayed={displayAlertModal} />
+	{:else if page.form?.error}
+		<AlertModal message={`Error! ${page.form.error}`} icon={Cross}
+					bind:isDisplayed={displayAlertModal} />
+	{/if}
+{/if}
 
 <style>
 	.product-layout {

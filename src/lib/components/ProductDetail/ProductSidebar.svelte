@@ -8,7 +8,8 @@
 		quantity,
 		stock,
 		onIncrement,
-		onDecrement
+		onDecrement,
+		displayModal = $bindable(),
 	}: {
 		id: number;
 		name: string;
@@ -17,6 +18,7 @@
 		stock: number;
 		onIncrement: () => void;
 		onDecrement: () => void;
+		displayModal: boolean;
 	} = $props();
 </script>
 
@@ -46,6 +48,7 @@
 
 	<form method="POST" action="/cart?/addCartEntry" class="w-full" use:enhance={() => {
 		return async ({ result }) => {
+			displayModal = true
 			await applyAction(result);
 		}
 	}}>
@@ -55,7 +58,6 @@
 			type="submit"
 			class="w-full mt-8 border-1 border-solid border-slate-700 px-8 py-3 bg-white cursor-pointer text-gray-700 rounded-full"
 			disabled={stock <= 0}
-			onclick={() => console.log('test add to cart')}
 		>
 			Add to cart
 		</button>
