@@ -10,7 +10,7 @@
 		name: string | null;
 		price: number | null;
 		imageUrl: string | null;
-		count: number | null;
+		count: number;
 	} = $props();
 
 	// Extract variant from product name (if applicable)
@@ -58,7 +58,7 @@
 
 			<button
 				class="flex h-8 w-8 items-center justify-center rounded-full border-1 border-solid border-black bg-gray-200 font-bold"
-				onclick={() => (count! -= 1)}>-</button
+				onclick={() => (count > 1 ? count! -= 1 : count = 0)}>-</button
 			>
 			<span class="flex text-lg">{count}</span>
 			<button
