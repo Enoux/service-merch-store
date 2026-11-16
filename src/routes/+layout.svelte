@@ -47,7 +47,9 @@
 	<div class = "flex px-4">
 		<div class="flex items-center gap-10">
 			<img src={Profile} alt="Account"/>
-			<img src={Cart} alt="Cart"/>
+			<a href='/cart'>
+				<img src={Cart} alt="Cart"/>
+			</a>
 		</div>
 	</div>
 	
