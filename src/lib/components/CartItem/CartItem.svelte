@@ -60,7 +60,18 @@
 				class="flex h-8 w-8 items-center justify-center rounded-full border-1 border-solid border-black bg-gray-200 font-bold"
 				onclick={() => (count > 1 ? count! -= 1 : count = 0)}>-</button
 			>
-			<span class="flex text-lg">{count}</span>
+			<input type="text" inputmode="numeric" class="flex w-10 text-lg text-center" bind:value={count} oninput={
+				(e) => {
+					count = Number(e.currentTarget.value.replace(/\D/g, ""));
+
+					if (count > 999)
+						count = Number(e.currentTarget.value.substring(0, 3));
+
+					const form = e.currentTarget.form;
+					setTimeout(() => {
+						form?.requestSubmit();
+					}, 1);
+				}} />
 			<button
 				class="flex h-8 w-8 items-center justify-center rounded-full border-1 border-solid border-black bg-gray-200 font-bold"
 				onclick={() => (count! += 1)}>+</button
